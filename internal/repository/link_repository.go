@@ -1,0 +1,56 @@
+package repository
+
+import (
+	"context"
+	"shorter/internal/model"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
+)
+
+type LinkRepository struct {
+	db *pgxpool.Pool
+}
+
+func NewLinkRepository(db *pgxpool.Pool) (*LinkRepository) {
+
+	return &LinkRepository{db: db}
+}
+
+func (r *LinkRepository) Create(ctx context.Context, link *model.Link) error {
+	q := `
+		INSERT INTO 
+			short_links (alias, original_url, expires_at)
+		VALUES ($1, $2, $3)
+	`
+	_, err := r.db.Exec(ctx, q, 
+		link.Alias, 
+		link.OriginalUrl, 
+		link.ExpiresAt,
+	)
+
+	return err
+}
+
+func (r *LinkRepository) GetByAlias(ctx context.Context, alias string) (*model.Link, error) {
+	q := `
+		SELECT 
+			alias, original_url, expires_at, click_count
+		FROM
+			short_links
+		WHERE alias = $1
+	`
+	var link model.Link
+	err := r.db.QueryRow(ctx, q, alias).Scan(
+		&link.Alias,
+		&link.OriginalUrl,
+		&link.ExpiresAt,
+		&link.ClickCount,
+	)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+
+	return &link, err
+}
