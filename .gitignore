@@ -28,6 +28,7 @@ docker-compose.override.yml
 # Environment
 .env
 .env.local
+config.yaml
 
 # Go
 go.sum

@@ -54,3 +54,13 @@ func (r *LinkRepository) GetByAlias(ctx context.Context, alias string) (*model.L
 
 	return &link, err
 }
+
+func (r *LinkRepository) IncClickCount(ctx context.Context, alias string) error {
+	q := `
+		UPDATE short_links
+		SET click_count = click_count + 1
+		WHERE alias = $1
+	`
+	_, err := r.db.Exec(ctx, q, alias)
+	return err
+}

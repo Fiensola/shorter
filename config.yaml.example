@@ -1,0 +1,14 @@
+is_dev: true
+
+server:
+  host: "localhost"
+  port: 8080
+  read_timeout: 5s
+  write_timeout: 10s
+
+kafka:
+  brokers:
+    - "kafka:9092"
+
+db:
+  url: "postgres://user:user@localhost:5432/shorter?sslmode=disable"
