@@ -6,8 +6,11 @@ import (
 	"log"
 	"net/http"
 	"shorter/internal/config"
+	"shorter/internal/consumer"
+	"shorter/internal/enricher"
 	"shorter/internal/handler"
 	"shorter/internal/logger"
+	"shorter/internal/metrics"
 	"shorter/internal/producer"
 	"shorter/internal/repository"
 	"time"
@@ -15,14 +18,17 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
 type App struct {
-	Router *chi.Mux
-	Server *http.Server
-	Logger *zap.Logger
-	Db     *pgxpool.Pool
+	Router        *chi.Mux
+	Server        *http.Server
+	Logger        *zap.Logger
+	Db            *pgxpool.Pool
+	KafkaProducer *producer.KafkaProducer
+	KafkaConsumer *consumer.KafkaConsumer
 }
 
 func NewApp() *App {
@@ -44,11 +50,27 @@ func NewApp() *App {
 		log.Fatal(err)
 	}
 
-	// kafka
-	kafkaProducer := producer.NewKafkaProducer(cfg.Kafka.Brokers, "click_events", logger)
+	// metrics
+	metrics.Register()
 
 	// repos
 	linkRepo := repository.NewLinkRepository(db)
+	analyticsRepo := repository.NewAnalyticsRepository(db)
+
+	// kafka
+	kafkaProducer := producer.NewKafkaProducer(cfg.Kafka.Brokers, "click_events", logger)
+	enricher := enricher.NewIpGeoEnricher(
+		enricher.NewGeoClient(cfg.External.GeoAPIkey),
+		enricher.NewDeviceParser(),
+	)
+	kafkaConsumer := consumer.NewKafkaConsumer(
+		cfg.Kafka.Brokers,
+		"click_events",
+		"shorter-consumer-group",
+		enricher,
+		analyticsRepo,
+		logger,
+	)
 
 	// router
 	r := chi.NewRouter()
@@ -59,6 +81,13 @@ func NewApp() *App {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
+
+	r.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		promhttp.Handler().ServeHTTP(w, r)
+	})
+	
+	statsHandler := handler.NewStatsHandler(analyticsRepo, logger)
+	r.Get("/stats/{alias}", statsHandler.Handle)
 
 	shorterHandler := handler.NewShorterHandler(linkRepo, logger, cfg)
 	r.Post("/api/v1/shorter", shorterHandler.Handle)
@@ -75,10 +104,12 @@ func NewApp() *App {
 	}
 
 	return &App{
-		Router: r,
-		Server: srv,
-		Logger: logger,
-		Db:     db,
+		Router:        r,
+		Server:        srv,
+		Logger:        logger,
+		Db:            db,
+		KafkaProducer: kafkaProducer,
+		KafkaConsumer: kafkaConsumer,
 	}
 }
 

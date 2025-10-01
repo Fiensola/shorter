@@ -19,6 +19,10 @@ type Config struct {
 	DB struct {
 		URL string `mapstructure:"url"`
 	} `mapstructure:"db"`
+
+	External struct {
+		GeoAPIkey string `mapstructure:"geo_api_key"`
+	} `mapstructure:"external"`
 }
 
 func LoadConfig(path string) (*Config, error) {

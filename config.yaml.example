@@ -8,7 +8,10 @@ server:
 
 kafka:
   brokers:
-    - "kafka:9092"
+    - "localhost:9092"
 
 db:
   url: "postgres://user:user@localhost:5432/shorter?sslmode=disable"
+
+external:
+  geo_api_key: ********************************

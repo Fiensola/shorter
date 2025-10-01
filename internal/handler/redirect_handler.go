@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"shorter/internal/events"
+	"shorter/internal/metrics"
 	"shorter/internal/producer"
 	"shorter/internal/repository"
 	"time"
@@ -33,17 +34,20 @@ func NewRedirectHandler(
 func (rh *RedirectHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	alias := chi.URLParam(r, "alias")
 	if alias == "" {
+		metrics.RedirectsErrorTotal.Inc()
 		http.Error(w, "alias is required", http.StatusBadRequest)
 		return
 	}
 
 	link, err := rh.repo.GetByAlias(r.Context(), alias)
 	if err != nil {
+		metrics.RedirectsErrorTotal.Inc()
 		rh.logger.Error("db error", zap.Error(err))
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 	if link == nil {
+		metrics.RedirectsErrorTotal.Inc()
 		http.Error(w, "internal error", http.StatusNotFound)
 		return
 	}
@@ -52,6 +56,8 @@ func (rh *RedirectHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err := rh.repo.IncClickCount(r.Context(), alias); err != nil {
 		rh.logger.Error("failed to increment click count", zap.Error(err))
 	}
+
+	metrics.RedirectsTotal.WithLabelValues(alias).Inc()
 
 	ip := r.Header.Get("X-Forwarded-For")
 	if ip == "" {

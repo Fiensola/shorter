@@ -15,11 +15,24 @@ import (
 func main() {
 	app := app.NewApp()
 	defer app.Db.Close()
+	defer app.Logger.Sync()
+
+	rootCtx, cancel := context.WithCancel(context.Background())
+	defer cancel() // if panic
 
 	// start server
 	go func() {
 		if err := app.StartHttpServer(); err != nil && err != http.ErrServerClosed {
-			app.Logger.Fatal("server startup failed", zap.Error(err))
+			app.Logger.Error("server startup failed", zap.Error(err))
+			cancel()
+		}
+	}()
+
+	// start consumer
+	go func() {
+		if err := app.KafkaConsumer.Start(rootCtx); err != nil {
+			app.Logger.Error("kafka consumer error", zap.Error(err))
+			cancel()
 		}
 	}()
 
@@ -29,12 +42,17 @@ func main() {
 	<-c
 
 	app.Logger.Info("shutting down server ...")
+	cancel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
 
-	if err := app.ShutdownHttpServer(ctx); err != nil {
-		app.Logger.Fatal("server shutdown failed", zap.Error(err))
+	if err := app.ShutdownHttpServer(shutdownCtx); err != nil {
+		app.Logger.Error("server shutdown failed", zap.Error(err))
+	}
+
+	if err := app.KafkaProducer.Close(); err != nil {
+		app.Logger.Error("Kafka producer close error", zap.Error(err))
 	}
 
 	app.Logger.Info("server stopped gracefully")
