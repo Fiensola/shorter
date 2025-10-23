@@ -85,9 +85,9 @@ func NewApp() *App {
 	r.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		promhttp.Handler().ServeHTTP(w, r)
 	})
-	
+
 	statsHandler := handler.NewStatsHandler(analyticsRepo, logger)
-	r.Get("/stats/{alias}", statsHandler.Handle)
+	r.Get("/api/v1/stats/{alias}", statsHandler.Handle)
 
 	shorterHandler := handler.NewShorterHandler(linkRepo, logger, cfg)
 	r.Post("/api/v1/shorter", shorterHandler.Handle)

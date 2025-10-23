@@ -37,7 +37,7 @@ func main() {
 	}()
 
 	// wait stop signal
-	c := make(chan os.Signal, 1)
+	c := make(chan os.Signal, 2)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	<-c
 

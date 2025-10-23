@@ -9,31 +9,37 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type LinkRepository struct {
+type LinkRepository interface {
+	Create(ctx context.Context, link *model.Link) error
+	GetByAlias(ctx context.Context, alias string) (*model.Link, error)
+	IncClickCount(ctx context.Context, alias string) error
+}
+
+type PgLinkRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewLinkRepository(db *pgxpool.Pool) (*LinkRepository) {
+func NewLinkRepository(db *pgxpool.Pool) *PgLinkRepository {
 
-	return &LinkRepository{db: db}
+	return &PgLinkRepository{db: db}
 }
 
-func (r *LinkRepository) Create(ctx context.Context, link *model.Link) error {
+func (r *PgLinkRepository) Create(ctx context.Context, link *model.Link) error {
 	q := `
 		INSERT INTO 
 			short_links (alias, original_url, expires_at)
 		VALUES ($1, $2, $3)
 	`
-	_, err := r.db.Exec(ctx, q, 
-		link.Alias, 
-		link.OriginalUrl, 
+	_, err := r.db.Exec(ctx, q,
+		link.Alias,
+		link.OriginalUrl,
 		link.ExpiresAt,
 	)
 
 	return err
 }
 
-func (r *LinkRepository) GetByAlias(ctx context.Context, alias string) (*model.Link, error) {
+func (r *PgLinkRepository) GetByAlias(ctx context.Context, alias string) (*model.Link, error) {
 	q := `
 		SELECT 
 			alias, original_url, expires_at, click_count
@@ -55,7 +61,7 @@ func (r *LinkRepository) GetByAlias(ctx context.Context, alias string) (*model.L
 	return &link, err
 }
 
-func (r *LinkRepository) IncClickCount(ctx context.Context, alias string) error {
+func (r *PgLinkRepository) IncClickCount(ctx context.Context, alias string) error {
 	q := `
 		UPDATE short_links
 		SET click_count = click_count + 1

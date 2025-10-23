@@ -14,13 +14,13 @@ import (
 )
 
 type RedirectHandler struct {
-	repo     *repository.LinkRepository
+	repo     repository.LinkRepository
 	producer *producer.KafkaProducer
 	logger   *zap.Logger
 }
 
 func NewRedirectHandler(
-	repo *repository.LinkRepository,
+	repo repository.LinkRepository,
 	producer *producer.KafkaProducer,
 	logger *zap.Logger,
 ) *RedirectHandler {
@@ -85,5 +85,5 @@ func (rh *RedirectHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	http.Redirect(w,r , link.OriginalUrl, http.StatusFound)
+	http.Redirect(w, r, link.OriginalUrl, http.StatusFound)
 }

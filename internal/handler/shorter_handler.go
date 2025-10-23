@@ -18,13 +18,13 @@ import (
 )
 
 type ShoterHandler struct {
-	repo   *repository.LinkRepository
+	repo   repository.LinkRepository
 	logger *zap.Logger
 	cfg    *config.Config
 }
 
 func NewShorterHandler(
-	repo *repository.LinkRepository,
+	repo repository.LinkRepository,
 	logger *zap.Logger,
 	cfg *config.Config,
 ) *ShoterHandler {

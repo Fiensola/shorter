@@ -10,11 +10,11 @@ import (
 )
 
 type StatsHandler struct {
-	repo   *repository.AnalyticsRepository
+	repo   repository.AnalyticsRepository
 	logger *zap.Logger
 }
 
-func NewStatsHandler(repo *repository.AnalyticsRepository, logger *zap.Logger) *StatsHandler {
+func NewStatsHandler(repo repository.AnalyticsRepository, logger *zap.Logger) *StatsHandler {
 	return &StatsHandler{
 		repo: repo,
 		logger: logger,

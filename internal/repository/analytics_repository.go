@@ -7,7 +7,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type AnalyticsRepository struct {
+type AnalyticsRepository interface {
+	Save(ctx context.Context, click *enricher.EnrichedClick) error
+	GetStats(ctx context.Context, alias string) (*Stats, error)
+}
+
+type PgAnalyticsRepository struct {
 	db *pgxpool.Pool
 }
 
@@ -20,13 +25,13 @@ type Stats struct {
 	ByBrowser   map[string]int `json:"by_browser"`
 }
 
-func NewAnalyticsRepository(db *pgxpool.Pool) *AnalyticsRepository {
-	return &AnalyticsRepository{
+func NewAnalyticsRepository(db *pgxpool.Pool) *PgAnalyticsRepository {
+	return &PgAnalyticsRepository{
 		db: db,
 	}
 }
 
-func (r *AnalyticsRepository) Save(ctx context.Context, click *enricher.EnrichedClick) error {
+func (r *PgAnalyticsRepository) Save(ctx context.Context, click *enricher.EnrichedClick) error {
 	q := `
 		INSERT INTO enriched_clicks
 		(alias, ip, country, city, device_type, os, browser, referer, timestamp)
@@ -48,7 +53,7 @@ func (r *AnalyticsRepository) Save(ctx context.Context, click *enricher.Enriched
 	return err
 }
 
-func (r *AnalyticsRepository) GetStats(ctx context.Context, alias string) (*Stats, error) {
+func (r *PgAnalyticsRepository) GetStats(ctx context.Context, alias string) (*Stats, error) {
 	var stats Stats
 	stats.Alias = alias
 

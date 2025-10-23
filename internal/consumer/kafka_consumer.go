@@ -16,7 +16,7 @@ import (
 type KafkaConsumer struct {
 	reader          *kafka.Reader
 	enricher        enricher.Enricher
-	repo            *repository.AnalyticsRepository
+	repo            repository.AnalyticsRepository
 	logger          *zap.Logger
 	workerCount     int
 	shutdownTimeout time.Duration
@@ -27,7 +27,7 @@ func NewKafkaConsumer(
 	topic string,
 	groupId string,
 	enricher enricher.Enricher,
-	repo *repository.AnalyticsRepository,
+	repo repository.AnalyticsRepository,
 	logger *zap.Logger,
 ) *KafkaConsumer {
 	return &KafkaConsumer{
